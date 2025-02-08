@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "325725940525",
+    "project_id": "pokemongo-f8a77",
+    "storage_bucket": "pokemongo-f8a77.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:325725940525:android:c96526e079841d394201a4",
+        "android_client_info": {
+          "package_name": "com.example.pokemon_go"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRgKULwk_gt8k3oAc3jQNMUuoUx614eEQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
