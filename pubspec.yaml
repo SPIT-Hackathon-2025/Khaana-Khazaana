@@ -42,6 +42,7 @@ dependencies:
   firebase_core: ^3.11.0
   awesome_notifications: ^0.10.0
   workmanager: ^0.5.2
+  provider: ^6.1.2
 
 dev_dependencies:
   flutter_test:

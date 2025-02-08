@@ -5,9 +5,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:pokemon_go/providers/poll_provider.dart';
+import 'package:provider/provider.dart';
 import 'dart:io';
 
 import 'package:workmanager/workmanager.dart';
+
+import 'screens/DiscussionScreen.dart';
 
 void main() async{
 
@@ -113,22 +117,27 @@ class Complaint {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Community Complaints',
-      theme: ThemeData(
-        primarySwatch: Colors.deepPurple,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => PollProvider())
+      ],
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Community Complaints',
+        theme: ThemeData(
+          primarySwatch: Colors.deepPurple,
 
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
 
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
             ),
           ),
         ),
+        home: ComplaintsScreen(),
       ),
-      home: ComplaintsScreen(),
     );
   }
 }
@@ -305,98 +314,105 @@ class ComplaintCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      elevation: 8,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.white, Colors.deepPurple.shade50],
-          ),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius:
-              BorderRadius.vertical(top: Radius.circular(20)),
-              child: Image.network(
-                doc['imageUrl'],
-                fit: BoxFit.cover,
-                height: 200,
-                width: double.infinity,
-              ),
+    return GestureDetector(
+      onTap: (){
+        Navigator.push(context, MaterialPageRoute(builder: (context){
+          return DiscussionScreen(postId: doc.id);
+        }));
+      },
+      child: Card(
+        margin: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 8,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.white, Colors.deepPurple.shade50],
             ),
-            Padding(
-              padding:
-              const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16),
-              child: Text(
-                doc['title'],
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius:
+                BorderRadius.vertical(top: Radius.circular(20)),
+                child: Image.network(
+                  doc['imageUrl'],
+                  fit: BoxFit.cover,
+                  height: 200,
+                  width: double.infinity,
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                children: [
-                  Icon(Icons.location_on,
-                      color: Colors.redAccent, size: 16),
-                  SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      doc['latitude'].toString(),
-                      style: TextStyle(color: Colors.grey.shade700),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+              Padding(
+                padding:
+                const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16),
+                child: Text(
+                  doc['title'],
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+
                   ),
-                  SizedBox(width: 8),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.deepPurple.shade100,
-                      borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  children: [
+                    Icon(Icons.location_on,
+                        color: Colors.redAccent, size: 16),
+                    SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        doc['latitude'].toString(),
+                        style: TextStyle(color: Colors.grey.shade700),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    child: Text(
-                      doc['category'],
-                      style: TextStyle(
-                          
-                          fontWeight: FontWeight.bold),
+                    SizedBox(width: 8),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.deepPurple.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        doc['category'],
+                        style: TextStyle(
+
+                            fontWeight: FontWeight.bold),
+                      ),
                     ),
+                  ],
+                ),
+              ),
+              ButtonBar(
+                alignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.thumb_up, color: Colors.green),
+                        onPressed: () => updateVotes(true),
+                      ),
+                      Text('${doc['upvotes']}'),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.thumb_down, color: Colors.red),
+                        onPressed: () => updateVotes(false),
+                      ),
+                      Text('${doc['downvotes']}'),
+                    ],
                   ),
                 ],
               ),
-            ),
-            ButtonBar(
-              alignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.thumb_up, color: Colors.green),
-                      onPressed: () => updateVotes(true),
-                    ),
-                    Text('${doc['upvotes']}'),
-                  ],
-                ),
-                Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.thumb_down, color: Colors.red),
-                      onPressed: () => updateVotes(false),
-                    ),
-                    Text('${doc['downvotes']}'),
-                  ],
-                ),
-              ],
-            ),
-            SizedBox(height: 8),
-          ],
+              SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );
