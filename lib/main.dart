@@ -4,14 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pokemon_go/screens/DiscussionScreen.dart';
+import 'package:pokemon_go/screens/MapScreen.dart';
 import 'package:pokemon_go/screens/ProfileInfoScreen.dart';
 import 'dart:io';
-
+import 'package:pokemon_go/screens/ComplaintTile.dart';
+import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
 
 import 'constants.dart';
+import 'providers/ComplaintsProvider.dart';
 
 void main() async{
 
@@ -117,23 +121,28 @@ class Complaint {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Community Complaints',
-      theme: ThemeData(
-        fontFamily: 'Poppins',
-        primarySwatch: Colors.deepPurple,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ComplaintsProvider()),
+      ],
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Community Complaints',
+        theme: ThemeData(
+          fontFamily: 'Poppins',
+          primarySwatch: Colors.deepPurple,
 
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
 
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
             ),
           ),
         ),
+        home: ComplaintsScreen(),
       ),
-      home: ComplaintsScreen(),
     );
   }
 }
@@ -163,6 +172,25 @@ class _ComplaintsScreenState extends State<ComplaintsScreen>
     Position position = await determinePosition();
     setState(() {
       _currentLoc=position;
+      _isLoading=false;
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> fetchLocations() async {
+    setState(() {
+      _isLoading=true;
+    });
+    QuerySnapshot snapshot = await FirebaseFirestore.instance.collection('complaints').get();
+
+    return snapshot.docs.map((doc) {
+      return {
+        "name": doc['title'], // Map title to name
+        "latLng": LatLng(doc['latitude'], doc['longitude']), // Map coordinates
+        "info": doc['category'], // Map category to info
+        "image": doc['imageUrl'], // Map image URL
+      };
+    }).toList();
+    setState(() {
       _isLoading=false;
     });
   }
@@ -222,17 +250,38 @@ class _ComplaintsScreenState extends State<ComplaintsScreen>
 }
 
 
-class ComplaintsList extends StatelessWidget {
+class ComplaintsList extends StatefulWidget {
   final String type;
   final Position? currentLocation;
 
   ComplaintsList({required this.type, required this.currentLocation});
 
-  double getRadius() {
-    return type == "emergency" ? 100.0 : 30.0;
+  @override
+  _ComplaintsListState createState() => _ComplaintsListState();
+}
+
+class _ComplaintsListState extends State<ComplaintsList> with SingleTickerProviderStateMixin<ComplaintsList> {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      setState(() {}); // Update UI when tab changes
+    });
   }
 
-  bool isWithinRadius(double latitude,double longitude, Position currentLocation, double radius) {
+
+
+
+
+
+  double getRadius() {
+    return widget.type == "emergency" ? 100.0 : 30.0;
+  }
+
+  bool isWithinRadius(double latitude, double longitude, Position currentLocation, double radius) {
     double distance = Geolocator.distanceBetween(
       currentLocation.latitude,
       currentLocation.longitude,
@@ -247,7 +296,7 @@ class ComplaintsList extends StatelessWidget {
     return StreamBuilder(
       stream: FirebaseFirestore.instance
           .collection('complaints')
-          .where('type', isEqualTo: type)
+          .where('type', isEqualTo: widget.type)
           .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
@@ -258,19 +307,98 @@ class ComplaintsList extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
 
-        var filteredDocs = snapshot.data!.docs.where((doc) {
-          double latitude=doc['latitude'];
-          double longitude=doc['longitude'];
-          return isWithinRadius(latitude,longitude, currentLocation!, getRadius());
-        }).toList();
-
-        if (filteredDocs.isEmpty) {
+        var allDocs = snapshot.data!.docs;
+        if (allDocs.isEmpty) {
           return const Center(child: Text("Nothing to show!"));
         }
 
-        return ListView(
-          padding: const EdgeInsets.all(8),
-          children: filteredDocs.map((doc) => ComplaintCard(doc: doc)).toList(),
+        // **Separate Local & Global Complaints**
+        var localComplaints = allDocs.where((doc) {
+          double latitude = doc['latitude'];
+          double longitude = doc['longitude'];
+          return isWithinRadius(latitude, longitude, widget.currentLocation!, getRadius());
+        }).toList();
+
+        var globalComplaints = allDocs.where((doc) => !localComplaints.contains(doc)).toList();
+
+        return Column(
+          children: [
+            // **Highlight the Latest Complaint in a Large Tile**
+            LargeComplaintTile(doc: allDocs.first),
+
+            SizedBox(height: 10),
+
+            // **TabBar with Oval Border**
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.transparent, // Change color based on tab
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                labelColor: Colors.green,
+                unselectedLabelColor: Colors.white,
+                indicatorColor: Colors.transparent,
+                tabs: [
+                  Tab(
+                    child: Container(
+
+                      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+                      decoration: BoxDecoration(
+                        color: _tabController.index == 0 ? Colors.green[50]:Colors.transparent ,
+                        border: Border.all(color: Colors.green, width: 3),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        "Local",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ),
+                  ),
+                  Tab(
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+                      decoration: BoxDecoration(
+                        color: _tabController.index == 0 ? Colors.transparent:Colors.green[50],
+                        border: Border.all(color: Colors.green, width: 2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        "Global",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // **TabBarView for Switching Between Local & Global**
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  // **Local Complaints Section**
+                  localComplaints.isNotEmpty
+                      ? ListView.builder(
+                    padding: EdgeInsets.all(8),
+                    itemCount: localComplaints.length,
+                    itemBuilder: (context, index) => ComplaintCard(doc: localComplaints[index]),
+                  )
+                      : Center(child: Text("No Local Complaints")),
+
+                  // **Global Complaints Section**
+                  globalComplaints.isNotEmpty
+                      ? ListView.builder(
+                    padding: EdgeInsets.all(8),
+                    itemCount: globalComplaints.length,
+                    itemBuilder: (context, index) => ComplaintCard(doc: globalComplaints[index]),
+                  )
+                      : Center(child: Text("No Global Complaints")),
+                ],
+              ),
+            ),
+          ],
         );
       },
     );
@@ -278,48 +406,144 @@ class ComplaintsList extends StatelessWidget {
 }
 
 
-class ComplaintCard extends StatefulWidget {
+class LargeComplaintTile extends StatelessWidget {
+
+
   final QueryDocumentSnapshot doc;
-  ComplaintCard({required this.doc});
-
-  @override
-  _ComplaintCardState createState() => _ComplaintCardState();
-}
-
-class _ComplaintCardState extends State<ComplaintCard> {
+  LargeComplaintTile({required this.doc});
   late int upvotes;
   late int downvotes;
 
+
+
+
+
+
+
   @override
-  void initState() {
-    super.initState();
-    upvotes = widget.doc['upvotes'];
-    downvotes = widget.doc['downvotes'];
-  }
+  Widget build(BuildContext context) {
+    final provider = Provider.of<ComplaintsProvider>(context);
+    final upvotes = provider.upvotes[doc.id] ?? doc['upvotes'];
+    final downvotes = provider.downvotes[doc.id] ?? doc['downvotes'];
+    return Card(
+      margin: EdgeInsets.all(12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      elevation: 5,
+      child: Container(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.green[50],
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Complaint Title
+            Text(
+              doc['title'],
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.green[900]),
+            ),
+            SizedBox(height: 8),
 
-  void updateVotes(bool isUpvote) {
-    FirebaseFirestore.instance.runTransaction((transaction) async {
-      DocumentSnapshot freshSnap = await transaction.get(widget.doc.reference);
-      int newUpvotes = freshSnap['upvotes'] + (isUpvote ? 1 : 0);
-      int newDownvotes = freshSnap['downvotes'] + (!isUpvote ? 1 : 0);
-      transaction.update(widget.doc.reference, {
-        'upvotes': newUpvotes,
-        'downvotes': newDownvotes,
-      });
+            // Location Row
+            Row(
+              children: [
+                Icon(Icons.location_on, color: Colors.red[800], size: 18),
+                SizedBox(width: 6),
+                Expanded(child: Text(doc['latitude'].toString(), overflow: TextOverflow.ellipsis)),
+              ],
+            ),
+            SizedBox(height: 10),
 
-      setState(() {
-        upvotes = newUpvotes;
-        downvotes = newDownvotes;
-      });
-    });
+            // **GestureDetector only on Image**
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (c) => DiscussionScreen(postId: doc.id)),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: Image.network(
+                  doc['imageUrl'],
+                  fit: BoxFit.cover,
+                  height: 180,
+                  width: double.infinity,
+                  loadingBuilder: (context, child, loadingProgress) =>
+                  loadingProgress == null ? child : Center(child: CircularProgressIndicator()),
+                ),
+              ),
+            ),
+            SizedBox(height: 12),
+
+            // Voting and Report Buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Upvote Button
+                GestureDetector(
+                  onTap: () =>  provider.updateVotes(doc.id, true),
+                  child: Row(
+                    children: [
+                      Icon(Icons.thumb_up, color: Colors.green[900], size: 22),
+                      SizedBox(width: 4),
+                      Text("$upvotes", style: TextStyle(color: Colors.green[900], fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+
+                // Downvote Button
+                GestureDetector(
+                  onTap: () => provider.updateVotes(doc.id, false),
+                  child: Row(
+                    children: [
+                      Icon(Icons.thumb_down, color: Colors.red, size: 22),
+                      SizedBox(width: 4),
+                      Text("$downvotes", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+
+                // Report Button
+                GestureDetector(
+                  onTap: (){},
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning, color: Colors.redAccent, size: 22),
+                      SizedBox(width: 4),
+                      Text("Report", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
+}
+
+
+
+class ComplaintCard extends StatelessWidget {
+
+  late int upvotes;
+  late int downvotes;
+  final QueryDocumentSnapshot doc;
+  ComplaintCard({required this.doc});
+
+
   static IconData exclamationmark = IconData(0xf655);
 
   @override
   Widget build(BuildContext context) {
+
+    final provider = Provider.of<ComplaintsProvider>(context);
+    final upvotes = provider.upvotes[doc.id] ?? doc['upvotes'];
+    final downvotes = provider.downvotes[doc.id] ?? doc['downvotes'];
     return GestureDetector(
       onTap: (){
-        Navigator.push(context, MaterialPageRoute(builder: (c){return DiscussionScreen(postId: widget.doc.id);}));
+        Navigator.push(context, MaterialPageRoute(builder: (c){return DiscussionScreen(postId: doc.id);}));
       },
       child: Card(
         margin: EdgeInsets.symmetric(vertical: 12, horizontal: 14),
@@ -343,7 +567,7 @@ class _ComplaintCardState extends State<ComplaintCard> {
                     children: [
                       // Complaint Title
                       Text(
-                        widget.doc['title'],
+                        doc['title'],
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -359,7 +583,7 @@ class _ComplaintCardState extends State<ComplaintCard> {
                           SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              widget.doc['latitude'].toString(),
+                              doc['latitude'].toString(),
                               style: TextStyle(color: Color(0xFF3A9F7A), fontSize: 16),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -376,7 +600,7 @@ class _ComplaintCardState extends State<ComplaintCard> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          widget.doc['category'],
+                         doc['category'],
                           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[900]),
                         ),
                       ),
@@ -388,7 +612,7 @@ class _ComplaintCardState extends State<ComplaintCard> {
                         children: [
                           // Upvote Button
                           GestureDetector(
-                            onTap: () => updateVotes(true),
+                            onTap: () =>  provider.updateVotes(doc.id, true),
                             child: Container(
                               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               decoration: BoxDecoration(
@@ -415,7 +639,7 @@ class _ComplaintCardState extends State<ComplaintCard> {
 
                           // Downvote Button
                           GestureDetector(
-                            onTap: () => updateVotes(false),
+                            onTap: () =>  provider.updateVotes(doc.id, false),
                             child: Container(
                               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               decoration: BoxDecoration(
@@ -451,7 +675,7 @@ class _ComplaintCardState extends State<ComplaintCard> {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(20),
                     child: Image.network(
-                      widget.doc['imageUrl'],
+                      doc['imageUrl'],
                       fit: BoxFit.cover,
                       height: 100,
                       width: 100, // Reduced width to avoid overflow
@@ -517,6 +741,53 @@ class _ComplaintCardState extends State<ComplaintCard> {
     );
   }
 }
+//
+// // **Smaller Tile for Other Complaints**
+// class SmallComplaintTile extends StatelessWidget {
+//   final QueryDocumentSnapshot doc;
+//   SmallComplaintTile({required this.doc});
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return GestureDetector(
+//       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => DiscussionScreen(postId: doc.id))),
+//       child: Card(
+//         margin: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+//         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+//         elevation: 2,
+//         child: ListTile(
+//           contentPadding: EdgeInsets.all(10),
+//           leading: ClipRRect(
+//             borderRadius: BorderRadius.circular(12),
+//             child: Image.network(
+//               doc['imageUrl'],
+//               fit: BoxFit.cover,
+//               width: 60,
+//               height: 60,
+//               loadingBuilder: (context, child, loadingProgress) =>
+//               loadingProgress == null ? child : CircularProgressIndicator(),
+//             ),
+//           ),
+//           title: Text(doc['title'], style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+//           subtitle: Row(
+//             children: [
+//               Icon(Icons.location_on, color: Colors.red, size: 16),
+//               SizedBox(width: 4),
+//               Expanded(child: Text(doc['latitude'].toString(), overflow: TextOverflow.ellipsis)),
+//             ],
+//           ),
+//           trailing: Column(
+//             children: [
+//               Icon(Icons.thumb_up, color: Colors.green[900], size: 20),
+//               Text("${doc['upvotes']}", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
+
 
 class AddComplaintScreen extends StatefulWidget {
   @override
@@ -623,161 +894,171 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
     return Scaffold(
         backgroundColor: Colors.greenAccent[100],
         appBar: AppBar(title: Text('Add Complaint',style: TextStyle(color: Colors.white),),backgroundColor: Colors.teal[300],),
-        body: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Card(
-                shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                elevation: 8,
+        body: Container(
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage("assets/images/back_1.png"),
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: Center(
+            child: SingleChildScrollView(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          'New Complaint',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                  child: Card(
+                    shape:
+                    RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    elevation: 8,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'New Complaint',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
 
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 16),
-                        TextFormField(
-                          controller: _titleController,
-                          decoration: InputDecoration(
-                            labelText: 'Title',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            prefixIcon:
-                            Icon(Icons.title, color: Colors.black),
-                          ),
-                          validator: (value) => value == null || value.isEmpty
-                              ? 'Please enter a title'
-                              : null,
-                        ),
-                        SizedBox(height: 16),
-                        DropdownButtonFormField<String>(
-                          value: _selectedType,
-                          decoration: InputDecoration(
-                            labelText: 'Select Type',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          items: ['emergency', 'regular']
-                              .map((type) => DropdownMenuItem(
-                              value: type, child: Text(type.toUpperCase())))
-                              .toList(),
-                          onChanged: (value) =>
-                              setState(() => _selectedType = value),
-                          validator: (value) =>
-                          value == null ? 'Please select a type' : null,
-                        ),
-                        SizedBox(height: 16),
-                        DropdownButtonFormField<String>(
-                          value: _selectedCategory,
-                          decoration: InputDecoration(
-                            labelText: 'Select Category',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          items: [
-                            'Fire',
-                            'Power Cut',
-                            'Flooding',
-                            'Pothole',
-                            'Road Damage',
-                            'Water Issues'
-                          ]
-                              .map((cat) =>
-                              DropdownMenuItem(value: cat, child: Text(cat)))
-                              .toList(),
-                          onChanged: (value) =>
-                              setState(() => _selectedCategory = value),
-                          validator: (value) =>
-                          value == null ? 'Please select a category' : null,
-                        ),
-                        SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: _pickImage,
-                                icon: Icon(Icons.image,color: Colors.black,),
-                                label: Text('Pick Image',style: TextStyle(color: Colors.black),),
                               ),
+                              textAlign: TextAlign.center,
                             ),
-                            SizedBox(width: 12),
-                            _image != null
-                                ? ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.file(
-                                _image!,
-                                width: 80,
-                                height: 80,
-                                fit: BoxFit.cover,
+                            SizedBox(height: 16),
+                            TextFormField(
+                              controller: _titleController,
+                              decoration: InputDecoration(
+                                labelText: 'Title',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                prefixIcon:
+                                Icon(Icons.title, color: Colors.black),
                               ),
-                            )
-                                : Container(
-                              width: 80,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey),
-                                borderRadius: BorderRadius.circular(8),
+                              validator: (value) => value == null || value.isEmpty
+                                  ? 'Please enter a title'
+                                  : null,
+                            ),
+                            SizedBox(height: 16),
+                            DropdownButtonFormField<String>(
+                              value: _selectedType,
+                              decoration: InputDecoration(
+                                labelText: 'Select Type',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
-                              child: Icon(Icons.image, color: Colors.grey),
+                              items: ['emergency', 'regular']
+                                  .map((type) => DropdownMenuItem(
+                                  value: type, child: Text(type.toUpperCase())))
+                                  .toList(),
+                              onChanged: (value) =>
+                                  setState(() => _selectedType = value),
+                              validator: (value) =>
+                              value == null ? 'Please select a type' : null,
+                            ),
+                            SizedBox(height: 16),
+                            DropdownButtonFormField<String>(
+                              value: _selectedCategory,
+                              decoration: InputDecoration(
+                                labelText: 'Select Category',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              items: [
+                                'Fire',
+                                'Power Cut',
+                                'Flooding',
+                                'Pothole',
+                                'Road Damage',
+                                'Water Issues'
+                              ]
+                                  .map((cat) =>
+                                  DropdownMenuItem(value: cat, child: Text(cat)))
+                                  .toList(),
+                              onChanged: (value) =>
+                                  setState(() => _selectedCategory = value),
+                              validator: (value) =>
+                              value == null ? 'Please select a category' : null,
+                            ),
+                            SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: _pickImage,
+                                    icon: Icon(Icons.image,color: Colors.black,),
+                                    label: Text('Pick Image',style: TextStyle(color: Colors.black),),
+                                  ),
+                                ),
+                                SizedBox(width: 12),
+                                _image != null
+                                    ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.file(
+                                    _image!,
+                                    width: 80,
+                                    height: 80,
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                                    : Container(
+                                  width: 80,
+                                  height: 80,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(Icons.image, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: _getLocation,
+                                    icon: Icon(Icons.location_on,color: Colors.black,),
+                                    label: Text('Get Location',style: TextStyle(color: Colors.black),),
+                                  ),
+                                ),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    _latitude!=0 ? '$_latitude, $_longitude' : 'No location',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 24),
+                            ElevatedButton(
+                              onPressed: _submitComplaint,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                                child: Text(
+                                  'Submit Complaint',
+                                  style: TextStyle(fontSize: 18,color: Colors.black),
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: _getLocation,
-                                icon: Icon(Icons.location_on,color: Colors.black,),
-                                label: Text('Get Location',style: TextStyle(color: Colors.black),),
-                              ),
-                            ),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                _latitude!=0 ? '$_latitude, $_longitude' : 'No location',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.grey),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 24),
-                        ElevatedButton(
-                          onPressed: _submitComplaint,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 16.0),
-                            child: Text(
-                              'Submit Complaint',
-                              style: TextStyle(fontSize: 18,color: Colors.black),
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ),
-            ), ),
+                ), ),
+          ),
+        ),
         );
   }
 }

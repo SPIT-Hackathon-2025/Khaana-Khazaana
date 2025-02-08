@@ -1,6 +1,8 @@
 import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-const url="https://c286-2409-40c0-103d-694f-3803-2ee-333b-cfb4.ngrok-free.app";
+const url =
+    "https://c286-2409-40c0-103d-694f-3803-2ee-333b-cfb4.ngrok-free.app";
 Future<Position> determinePosition() async {
   bool serviceEnabled;
   LocationPermission permission;
@@ -37,3 +39,27 @@ Future<Position> determinePosition() async {
   // continue accessing the position of the device.
   return await Geolocator.getCurrentPosition();
 }
+
+List<Map<String, dynamic>> locations = [
+  {
+    "name": "R City",
+    "latLng": LatLng(19.0945902, 72.9421997),
+    "info": "Famous landmark",
+    'image':
+        'https://media.geeksforgeeks.org/wp-content/uploads/20191016135223/What-is-Algorithm_.jpg'
+  },
+  {
+    "name": "Taj Trees",
+    "latLng": LatLng(19.0946016, 72.9422359),
+    "info": "Iconic tower",
+    'image':
+        'https://media.geeksforgeeks.org/wp-content/uploads/20191016135223/What-is-Algorithm_.jpg',
+  },
+  {
+    "name": "Powai Lake",
+    "latLng": LatLng(19.1103994, 72.9237242),
+    "info": "Beautiful lake",
+    'image':
+        'https://media.geeksforgeeks.org/wp-content/uploads/20191016135223/What-is-Algorithm_.jpg',
+  },
+];
