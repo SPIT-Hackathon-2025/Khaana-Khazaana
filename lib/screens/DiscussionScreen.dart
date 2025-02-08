@@ -130,7 +130,7 @@ class _DiscussionScreenState extends State<DiscussionScreen> {
         appBar: AppBar(title: Text("Discussion Thread")),
         body: StreamBuilder(
           stream: FirebaseFirestore.instance
-              .collection('posts')
+              .collection('complaints')
               .doc(widget.postId)
               .collection('replies')
               .orderBy('createdAt', descending: false)
