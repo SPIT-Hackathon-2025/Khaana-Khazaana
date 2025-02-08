@@ -1,125 +1,668 @@
+import 'package:awesome_notifications/awesome_notifications.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
-void main() {
-  runApp(const MyApp());
+import 'package:workmanager/workmanager.dart';
+
+void main() async{
+
+  WidgetsFlutterBinding.ensureInitialized();
+  //Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+
+  AwesomeNotifications().initialize(
+    null, // Use the default icon
+    [NotificationChannel(
+      channelKey: 'reminder_channel',
+      channelName: 'SOS Reminders',
+      channelDescription: 'Notifications with custom sounds',
+      playSound: true,
+      // Custom sound will be defined per notification
+      importance: NotificationImportance.High,
+    ),
+      NotificationChannel(
+        channelKey: 'custom_sound_channel',
+        channelName: 'Custom Sound Notifications',
+        channelDescription: 'Notifications with custom sounds',
+        playSound: true,
+        // Custom sound will be defined per notification
+        importance: NotificationImportance.High,
+      ),
+      NotificationChannel(
+        channelKey: 'scheduled_channel',
+        channelName: 'Doctor Visit Notif',
+        channelDescription: 'Notifications with custom sounds',
+        playSound: true,
+        // Custom sound will be defined per notification
+        importance: NotificationImportance.High,
+      ),
+      NotificationChannel(
+        channelKey: 'high_frequency',
+        channelName: 'high_frequency',
+        channelDescription: 'Notifications with custom sounds',
+        playSound: true,
+        // Custom sound will be defined per notification
+        importance: NotificationImportance.High,
+      ),
+      NotificationChannel(
+        channelKey: 'low_frequency',
+        channelName: 'Doctor Visit Notif',
+        channelDescription: 'Notifications with custom sounds',
+        playSound: true,
+        // Custom sound will be defined per notification
+        importance: NotificationImportance.High,
+      )
+    ],
+  );
+  AwesomeNotifications().isNotificationAllowed().then((isAllowed) {
+    if (!isAllowed) {
+      AwesomeNotifications().requestPermissionToSendNotifications();
+    }
+  });
+  FirebaseApp app = await Firebase.initializeApp();
+  print('Initialized default app $app');
+
+  runApp(MyApp() );
+}
+
+class Complaint {
+  String title;
+  String imageUrl;
+  double latitude;
+  double longitude;
+  String type;
+  String category;
+  int upvotes;
+  int downvotes;
+  String status;
+  DateTime createdAt;
+
+  Complaint({
+    required this.title,
+    required this.imageUrl,
+    required this.latitude,
+    required this.longitude,
+    required this.type,
+    required this.category,
+    this.upvotes = 0,
+    this.downvotes = 0,
+    this.status = 'Pending',
+    required this.createdAt,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'imageUrl': imageUrl,
+      'longitude': longitude,
+      'latitude': latitude,
+      'type': type,
+      'category': category,
+      'upvotes': upvotes,
+      'downvotes': downvotes,
+      'status': status,
+      'createdAt': createdAt.toIso8601String(),
+    };
+  }
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      debugShowCheckedModeBanner: false,
+      title: 'Community Complaints',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+        primarySwatch: Colors.deepPurple,
+
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+          ),
+        ),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: ComplaintsScreen(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
+class ComplaintsScreen extends StatefulWidget {
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _ComplaintsScreenState createState() => _ComplaintsScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _ComplaintsScreenState extends State<ComplaintsScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  Position? _currentLoc;
+  bool _isLoading=false;
 
-  void _incrementCounter() {
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _getLocation();
+
+  }
+  Future<void> _getLocation() async {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _isLoading=true;
+    });
+    Position position = await _determinePosition();
+    setState(() {
+      _currentLoc=position;
+      _isLoading=false;
+    });
+  }
+  Future<Position> _determinePosition() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Test if location services are enabled.
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      // Location services are not enabled don't continue
+      // accessing the position and request users of the
+      // App to enable the location services.
+      return Future.error('Location services are disabled.');
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        // Permissions are denied, next time you could try
+        // requesting permissions again (this is also where
+        // Android's shouldShowRequestPermissionRationale
+        // returned true. According to Android guidelines
+        // your App should show an explanatory UI now.
+        return Future.error('Location permissions are denied');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      // Permissions are denied forever, handle appropriately.
+      return Future.error(
+          'Location permissions are permanently denied, we cannot request permissions.');
+    }
+
+    // When we reach here, permissions are granted and we can
+    // continue accessing the position of the device.
+    return await Geolocator.getCurrentPosition();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Community Complaints'),
+        bottom: TabBar(
+          controller: _tabController,
+
+          tabs: [
+            Tab(text: 'Emergency'),
+            Tab(text: 'Regular'),
+          ],
+        ),
+      ),
+      body: (_isLoading)?
+          Center(child: CircularProgressIndicator(color: Colors.deepPurple,),):TabBarView(
+        controller: _tabController,
+        children: [
+          ComplaintsList(type: 'emergency',currentLocation: _currentLoc,),
+          ComplaintsList(type: 'regular',currentLocation: _currentLoc),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => AddComplaintScreen()),
+        ),
+        child: Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+
+class ComplaintsList extends StatelessWidget {
+  final String type;
+  final Position? currentLocation;
+
+  ComplaintsList({required this.type, required this.currentLocation});
+
+  double getRadius() {
+    return type == "emergency" ? 100.0 : 30.0;
+  }
+
+  bool isWithinRadius(double latitude,double longitude, Position currentLocation, double radius) {
+    double distance = Geolocator.distanceBetween(
+      currentLocation.latitude,
+      currentLocation.longitude,
+      latitude,
+      longitude,
+    );
+    return distance <= radius;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+      stream: FirebaseFirestore.instance
+          .collection('complaints')
+          .where('type', isEqualTo: type)
+          .orderBy('createdAt', descending: true)
+          .snapshots(),
+      builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+        if (snapshot.hasError) {
+          return const Center(child: Text("An Error Occurred!"));
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        var filteredDocs = snapshot.data!.docs.where((doc) {
+          double latitude=doc['latitude'];
+          double longitude=doc['longitude'];
+          return isWithinRadius(latitude,longitude, currentLocation!, getRadius());
+        }).toList();
+
+        if (filteredDocs.isEmpty) {
+          return const Center(child: Text("Nothing to show!"));
+        }
+
+        return ListView(
+          padding: const EdgeInsets.all(8),
+          children: filteredDocs.map((doc) => ComplaintCard(doc: doc)).toList(),
+        );
+      },
+    );
+  }
+}
+
+
+class ComplaintCard extends StatelessWidget {
+  final QueryDocumentSnapshot doc;
+  ComplaintCard({required this.doc});
+
+  void updateVotes(bool isUpvote) {
+    FirebaseFirestore.instance.runTransaction((transaction) async {
+      DocumentSnapshot freshSnap = await transaction.get(doc.reference);
+      int newUpvotes = freshSnap['upvotes'] + (isUpvote ? 1 : 0);
+      int newDownvotes = freshSnap['downvotes'] + (!isUpvote ? 1 : 0);
+      transaction.update(doc.reference,
+          {'upvotes': newUpvotes, 'downvotes': newDownvotes});
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
+    return Card(
+      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      elevation: 8,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.white, Colors.deepPurple.shade50],
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius:
+              BorderRadius.vertical(top: Radius.circular(20)),
+              child: Image.network(
+                doc['imageUrl'],
+                fit: BoxFit.cover,
+                height: 200,
+                width: double.infinity,
+              ),
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+            Padding(
+              padding:
+              const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16),
+              child: Text(
+                doc['title'],
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  
+                ),
+              ),
             ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                children: [
+                  Icon(Icons.location_on,
+                      color: Colors.redAccent, size: 16),
+                  SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      doc['latitude'].toString(),
+                      style: TextStyle(color: Colors.grey.shade700),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.deepPurple.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      doc['category'],
+                      style: TextStyle(
+                          
+                          fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ButtonBar(
+              alignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.thumb_up, color: Colors.green),
+                      onPressed: () => updateVotes(true),
+                    ),
+                    Text('${doc['upvotes']}'),
+                  ],
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.thumb_down, color: Colors.red),
+                      onPressed: () => updateVotes(false),
+                    ),
+                    Text('${doc['downvotes']}'),
+                  ],
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+    );
+  }
+}
+
+class AddComplaintScreen extends StatefulWidget {
+  @override
+  _AddComplaintScreenState createState() => _AddComplaintScreenState();
+}
+
+class _AddComplaintScreenState extends State<AddComplaintScreen> {
+  final _titleController = TextEditingController();
+  String? _selectedType;
+  String? _selectedCategory;
+  File? _image;
+  double _latitude=0;
+  double _longitude=0;
+  final _formKey = GlobalKey<FormState>();
+
+  Future<void> _getLocation() async {
+    Position position = await _determinePosition();
+    setState(() {
+
+      _latitude =position.latitude;
+      _longitude=position.longitude;
+    });
+  }
+  Future<Position> _determinePosition() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Test if location services are enabled.
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      // Location services are not enabled don't continue
+      // accessing the position and request users of the
+      // App to enable the location services.
+      return Future.error('Location services are disabled.');
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        // Permissions are denied, next time you could try
+        // requesting permissions again (this is also where
+        // Android's shouldShowRequestPermissionRationale
+        // returned true. According to Android guidelines
+        // your App should show an explanatory UI now.
+        return Future.error('Location permissions are denied');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      // Permissions are denied forever, handle appropriately.
+      return Future.error(
+          'Location permissions are permanently denied, we cannot request permissions.');
+    }
+
+    // When we reach here, permissions are granted and we can
+    // continue accessing the position of the device.
+    return await Geolocator.getCurrentPosition();
+  }
+
+  Future<void> _pickImage() async {
+    final pickedFile =
+    await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _image = File(pickedFile.path);
+      });
+    }
+  }
+
+  Future<void> _submitComplaint() async {
+    if (_formKey.currentState!.validate() &&
+        _image != null &&
+        _selectedType != null &&
+        _selectedCategory != null) {
+      String imageUrl = await _uploadImage();
+      Complaint complaint = Complaint(
+        title: _titleController.text,
+        imageUrl: imageUrl,
+
+        type: _selectedType!,
+        category: _selectedCategory!,
+        createdAt: DateTime.now(), latitude: _latitude!,
+        longitude: _longitude!
+      );
+      FirebaseFirestore.instance
+          .collection('complaints')
+          .add(complaint.toMap());
+      Navigator.pop(context);
+    }
+  }
+
+  Future<String> _uploadImage() async {
+    Reference storageRef = FirebaseStorage.instance
+        .ref()
+        .child('complaints/${DateTime.now().toIso8601String()}');
+    UploadTask uploadTask = storageRef.putFile(_image!);
+    TaskSnapshot snapshot = await uploadTask;
+    return await snapshot.ref.getDownloadURL();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Add Complaint')),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Card(
+            shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            elevation: 8,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'New Complaint',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 16),
+                    TextFormField(
+                      controller: _titleController,
+                      decoration: InputDecoration(
+                        labelText: 'Title',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        prefixIcon:
+                        Icon(Icons.title, color: Colors.deepPurple),
+                      ),
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Please enter a title'
+                          : null,
+                    ),
+                    SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: _selectedType,
+                      decoration: InputDecoration(
+                        labelText: 'Select Type',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      items: ['emergency', 'regular']
+                          .map((type) => DropdownMenuItem(
+                          value: type, child: Text(type.toUpperCase())))
+                          .toList(),
+                      onChanged: (value) =>
+                          setState(() => _selectedType = value),
+                      validator: (value) =>
+                      value == null ? 'Please select a type' : null,
+                    ),
+                    SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: _selectedCategory,
+                      decoration: InputDecoration(
+                        labelText: 'Select Category',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      items: [
+                        'Fire',
+                        'Power Cut',
+                        'Flooding',
+                        'Pothole',
+                        'Road Damage',
+                        'Water Issues'
+                      ]
+                          .map((cat) =>
+                          DropdownMenuItem(value: cat, child: Text(cat)))
+                          .toList(),
+                      onChanged: (value) =>
+                          setState(() => _selectedCategory = value),
+                      validator: (value) =>
+                      value == null ? 'Please select a category' : null,
+                    ),
+                    SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _pickImage,
+                            icon: Icon(Icons.image),
+                            label: Text('Pick Image'),
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        _image != null
+                            ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(
+                            _image!,
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                            : Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(Icons.image, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _getLocation,
+                            icon: Icon(Icons.location_on),
+                            label: Text('Get Location'),
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _latitude!=0 ? '$_latitude, $_longitude' : 'No location',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: _submitComplaint,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        child: Text(
+                          'Submit Complaint',
+                          style: TextStyle(fontSize: 18),
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
