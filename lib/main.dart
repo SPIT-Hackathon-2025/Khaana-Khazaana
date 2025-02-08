@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pokemon_go/providers/poll_provider.dart';
+import 'package:pokemon_go/screens/ProfileInfoScreen.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
 
@@ -136,7 +137,7 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
-        home: ComplaintsScreen(),
+        home: ProfileUploadPage(),
       ),
     );
   }
