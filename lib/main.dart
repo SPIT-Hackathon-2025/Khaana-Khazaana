@@ -133,7 +133,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: ProfileUploadPage(),
+      home: ComplaintsScreen(),
     );
   }
 }

@@ -74,6 +74,7 @@ flutter:
   assets:
     - assets/fonts/
     - assets/images/back.jpg
+    - assets/images/back_1.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
