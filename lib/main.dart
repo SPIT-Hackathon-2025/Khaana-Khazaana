@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -98,7 +100,7 @@ class Complaint {
     required this.category,
     this.upvotes = 0,
     this.downvotes = 0,
-    this.status = 'Pending',
+    this.status = '0',
     required this.createdAt,
   });
 
@@ -425,6 +427,7 @@ class LargeComplaintTile extends StatelessWidget {
     final provider = Provider.of<ComplaintsProvider>(context);
     final upvotes = provider.upvotes[doc.id] ?? doc['upvotes'];
     final downvotes = provider.downvotes[doc.id] ?? doc['downvotes'];
+    String status = provider.statuses[doc.id] ?? doc['status'];
     return Card(
       margin: EdgeInsets.all(12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -481,7 +484,7 @@ class LargeComplaintTile extends StatelessWidget {
               children: [
                 // Upvote Button
                 GestureDetector(
-                  onTap: () =>  provider.updateVotes(doc.id, true),
+                  onTap: () =>  provider.updateVotes(doc.id, true,upvotes>20?"1":"0"),
                   child: Row(
                     children: [
                       Icon(Icons.thumb_up, color: Colors.green[900], size: 22),
@@ -493,7 +496,7 @@ class LargeComplaintTile extends StatelessWidget {
 
                 // Downvote Button
                 GestureDetector(
-                  onTap: () => provider.updateVotes(doc.id, false),
+                  onTap: () => provider.updateVotes(doc.id, false,upvotes>20?"1":"0"),
                   child: Row(
                     children: [
                       Icon(Icons.thumb_down, color: Colors.red, size: 22),
@@ -510,7 +513,7 @@ class LargeComplaintTile extends StatelessWidget {
                     children: [
                       Icon(Icons.warning, color: Colors.redAccent, size: 22),
                       SizedBox(width: 4),
-                      Text("Report", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                      Text((status!="0")?"Verified":upvotes>20?"Verified":"Report", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
@@ -541,6 +544,8 @@ class ComplaintCard extends StatelessWidget {
     final provider = Provider.of<ComplaintsProvider>(context);
     final upvotes = provider.upvotes[doc.id] ?? doc['upvotes'];
     final downvotes = provider.downvotes[doc.id] ?? doc['downvotes'];
+
+    String status = provider.statuses[doc.id] ?? doc['status'];
     return GestureDetector(
       onTap: (){
         Navigator.push(context, MaterialPageRoute(builder: (c){return DiscussionScreen(postId: doc.id);}));
@@ -612,7 +617,7 @@ class ComplaintCard extends StatelessWidget {
                         children: [
                           // Upvote Button
                           GestureDetector(
-                            onTap: () =>  provider.updateVotes(doc.id, true),
+                            onTap: () =>  provider.updateVotes(doc.id, true,upvotes>20?"1":"0"),
                             child: Container(
                               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               decoration: BoxDecoration(
@@ -639,7 +644,7 @@ class ComplaintCard extends StatelessWidget {
 
                           // Downvote Button
                           GestureDetector(
-                            onTap: () =>  provider.updateVotes(doc.id, false),
+                            onTap: () =>  provider.updateVotes(doc.id, false,upvotes>20?"1":"0"),
                             child: Container(
                               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               decoration: BoxDecoration(
@@ -721,7 +726,7 @@ class ComplaintCard extends StatelessWidget {
                           Icon(Icons.warning, color: Colors.redAccent, size: 20),
                           SizedBox(width: 6),
                           Text(
-                            'Report',
+                            (status!="0")?"Verified":upvotes>20?"Verified":"Report",
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
@@ -863,19 +868,45 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
         _image != null &&
         _selectedType != null &&
         _selectedCategory != null) {
+
       String imageUrl = await _uploadImage();
       Complaint complaint = Complaint(
-          title: _titleController.text,
-          imageUrl: imageUrl,
-
-          type: _selectedType!,
-          category: _selectedCategory!,
-          createdAt: DateTime.now(), latitude: _latitude!,
-          longitude: _longitude!
+        title: _titleController.text,
+        imageUrl: imageUrl,
+        type: _selectedType!,
+        category: _selectedCategory!,
+        createdAt: DateTime.now(),
+        latitude: _latitude!,
+        longitude: _longitude!,
       );
-      FirebaseFirestore.instance
+
+      // Add complaint to Firestore
+      DocumentReference docRef = await FirebaseFirestore.instance
           .collection('complaints')
           .add(complaint.toMap());
+
+      // Send title to API
+    // Replace with your API URL
+      try {
+        var response = await http.post(
+          Uri.parse("$url/get-verification"),
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode({"title": _titleController.text}),
+        );
+
+        if (response.statusCode == 200) {
+          Map<String, dynamic> responseData = jsonDecode(response.body);
+          String newStatus = responseData["status"]; // Extract status
+print("Status is"+newStatus);
+          // Update Firestore with the received status
+          await docRef.update({"status": newStatus});
+        } else {
+          print("API Error: ${response.statusCode} - ${response.body}");
+        }
+      } catch (e) {
+        print("Failed to send API request: $e");
+      }
+
       Navigator.pop(context);
     }
   }
