@@ -10,15 +10,15 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 
 
-class HomeScreen extends StatefulWidget {
+class ChatBotScreen extends StatefulWidget {
   static const routeName = '/home';
-  const HomeScreen({Key? key}) : super(key: key);
+  const ChatBotScreen({Key? key}) : super(key: key);
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<ChatBotScreen> createState() => _ChatBotScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _ChatBotScreenState extends State<ChatBotScreen> {
   //final ReminderService _reminderService = ReminderService();
   bool isLoading = false;
   double homeLat = 0;

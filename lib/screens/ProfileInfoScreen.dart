@@ -9,7 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:pokemon_go/constants.dart';
 import 'package:pokemon_go/main.dart';
 import 'dart:convert';
-
+import 'HomeScreen.dart';
 import '../models/user_model.dart';
 
 class ProfileUploadPage extends StatefulWidget {
@@ -295,7 +295,7 @@ class _ProfileUploadPageState extends State<ProfileUploadPage> {
                             (_verifiedName != null)
                                 ? ElevatedButton(
                                     onPressed: () {
-                                      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context){return ComplaintsScreen();}), (route)=>false);
+                                      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context){return HomeScreen();}), (route)=>false);
 
                                     },
                                     child: const Text("Done",

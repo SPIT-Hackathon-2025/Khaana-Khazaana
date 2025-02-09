@@ -118,20 +118,20 @@ class _LostAndFoundPageState extends State<LostAndFoundPage> with TickerProvider
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.deepPurpleAccent,
-        child: const Icon(Icons.add, size: 30),
-        onPressed: () async {
-          final newItem = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => AddLostItemPage()),
-          );
-
-          if (newItem != null) {
-            _addNewItem(newItem);
-          }
-        },
-      ),
+      // floatingActionButton: FloatingActionButton(
+      //   backgroundColor: Colors.deepPurpleAccent,
+      //   child: const Icon(Icons.add, size: 30),
+      //   onPressed: () async {
+      //     final newItem = await Navigator.push(
+      //       context,
+      //       MaterialPageRoute(builder: (context) => AddLostItemPage()),
+      //     );
+      //
+      //     if (newItem != null) {
+      //       _addNewItem(newItem);
+      //     }
+      //   },
+      // ),
     );
   }
 

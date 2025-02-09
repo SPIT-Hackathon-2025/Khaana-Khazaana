@@ -99,7 +99,14 @@ class Complaint {
   }
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+
+
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -122,7 +129,43 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
-        home: HomeScreen(),
+        home: SignUpScreen(),
+        // home:
+        // StreamBuilder(
+        //   stream: FirebaseAuth.instance.authStateChanges(),
+        //   builder: (context, snapshot) {
+        //
+        //     if (snapshot.connectionState == ConnectionState.active) {
+        //       if (snapshot.hasData) {
+        //         final User? firebaseUser = snapshot.data;
+        //         if (firebaseUser != null) {
+        //
+        //             return HomeScreen();
+        //           }
+        //         }
+        //       } else if (snapshot.hasError) {
+        //         return Scaffold(
+        //           body: Center(
+        //             child: Text('${snapshot.error}'),
+        //           ),
+        //         );
+        //       }
+        //
+        //
+        //     if (snapshot.connectionState == ConnectionState.waiting) {
+        //       return Scaffold(
+        //         body: Center(
+        //           child: CircularProgressIndicator(),
+        //         ),
+        //       );
+        //     }
+        //
+        //     return SignUpScreen();
+        //   },
+        // )
+
+
+
       ),
     );
   }

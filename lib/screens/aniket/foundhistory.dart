@@ -54,15 +54,16 @@ class _FoundHistoryPageState extends State<FoundHistoryPage> {
           },
         ),
         floatingActionButton: FloatingActionButton(
+          backgroundColor: Colors.lightGreen,
         onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => AddLostItemPage(), // Pass the first claim item for now
+              builder: (context) => SubmitLostItemPage(), // Pass the first claim item for now
             ),
           );
         },
-        child: Icon(Icons.add),
+        child: Icon(Icons.add,color: Colors.white,),
       ),
     );
   }
@@ -259,12 +260,12 @@ class _ClaimantDetailsPageState extends State<ClaimantDetailsPage> {
 }
 
 
-class AddLostItemPage extends StatefulWidget {
+class SubmitLostItemPage extends StatefulWidget {
   @override
-  _AddLostItemPageState createState() => _AddLostItemPageState();
+  _SubmitLostItemPageState createState() => _SubmitLostItemPageState();
 }
 
-class _AddLostItemPageState extends State<AddLostItemPage> {
+class _SubmitLostItemPageState extends State<SubmitLostItemPage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _latitudeController = TextEditingController();

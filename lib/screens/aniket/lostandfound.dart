@@ -86,7 +86,7 @@ class LostFoundScreen extends StatelessWidget {
               padding: const EdgeInsets.all(16.0),
               child: TabBarView(
                 children: [
-                  _buildHomePage(),
+                  _buildHomePage(context),
                   _buildSearchPage(),
                   _buildInsertPage(),
                   _buildInboxPage(),
@@ -100,251 +100,261 @@ class LostFoundScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHomePage() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: ListView(
-        children: [
-          // Green Notification Banner
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.green[700],
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.help_outline, color: Colors.white),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    "Have you lost or found an item?\nWhat should you do now?",
-                    style: TextStyle(color: Colors.white, fontSize: 14),
+  Widget _buildHomePage(BuildContext context) {
+    return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.lightGreen,
+          child: Icon(Icons.add,color: Colors.white,),
+          onPressed: (){
+        Navigator.of(context).push(MaterialPageRoute(builder: (context){
+          return AddLostItemPage();
+        }));
+      }),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: ListView(
+          children: [
+            // Green Notification Banner
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green[700],
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.help_outline, color: Colors.white),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Have you lost or found an item?\nWhat should you do now?",
+                      style: TextStyle(color: Colors.white, fontSize: 14),
+                    ),
                   ),
-                ),
-                const Icon(Icons.arrow_drop_down, color: Colors.white),
-              ],
+                  const Icon(Icons.arrow_drop_down, color: Colors.white),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          // Lost Items Section
-          const Text("Your lost items",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 10),
+            // Lost Items Section
+            const Text("Your lost items",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
 
-          SizedBox(
-            height: 180, // Adjust the height of the sliding row
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: lostItems.length,
-              itemBuilder: (context, index) {
-                var item = lostItems[index];
-                return Card(
-                  margin: EdgeInsets.symmetric(horizontal: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  elevation: 5,
-                  child: Container(
-                    width: 300, // Set a specific width for the card
-                    height: 180, // Set the height of the card
-                    padding: const EdgeInsets.all(10),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Left Column: Image and Title
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
-                              child: Image.asset(
-                                item['image']!,
-                                width: 120,
-                                height: 100,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            // Title
-                            Text(
-                              item['title']!,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(width: 10), // Space between image and description
-                        // Right Column: Description, Status, and Button
-                        Expanded(
-                          child: Column(
+            SizedBox(
+              height: 180, // Adjust the height of the sliding row
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: lostItems.length,
+                itemBuilder: (context, index) {
+                  var item = lostItems[index];
+                  return Card(
+                    margin: EdgeInsets.symmetric(horizontal: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    elevation: 5,
+                    child: Container(
+                      width: 300, // Set a specific width for the card
+                      height: 180, // Set the height of the card
+                      padding: const EdgeInsets.all(10),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Left Column: Image and Title
+                          Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Description Text (wrapped on new lines)
-                              Text(
-                                item['description']!,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey,
-                                ),
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              SizedBox(height: 10),
-                              // Status Text
-                              Text(
-                                'Status: ${item['status']}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: item['status'] == 'unresolved' ? Colors.red : Colors.green,
+                              ClipRRect(
+                                borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+                                child: Image.asset(
+                                  item['image']!,
+                                  width: 120,
+                                  height: 100,
+                                  fit: BoxFit.cover,
                                 ),
                               ),
-                              SizedBox(height: 10),
-                              // Get Details Button with green background and elevation
-                              ElevatedButton(
-                                onPressed: () {
-                                  // Handle the "Get Details" action here.
-                                  print('Get details of ${item['title']}');
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
-                                  elevation: 5,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                                ),
-                                child: Text(
-                                  'Get Details',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
+                              SizedBox(height: 8),
+                              // Title
+                              Text(
+                                item['title']!,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      ],
+                          SizedBox(width: 10), // Space between image and description
+                          // Right Column: Description, Status, and Button
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Description Text (wrapped on new lines)
+                                Text(
+                                  item['description']!,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey,
+                                  ),
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                SizedBox(height: 10),
+                                // Status Text
+                                Text(
+                                  'Status: ${item['status']}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: item['status'] == 'unresolved' ? Colors.red : Colors.green,
+                                  ),
+                                ),
+                                SizedBox(height: 10),
+                                // Get Details Button with green background and elevation
+                                ElevatedButton(
+                                  onPressed: () {
+                                    // Handle the "Get Details" action here.
+                                    print('Get details of ${item['title']}');
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    elevation: 5,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                                  ),
+                                  child: Text(
+                                    'Get Details',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          // Found Items Section
-          const Text("Your found items",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 180, // Adjust the height of the sliding row
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: lostItems.length,
-              itemBuilder: (context, index) {
-                var item = lostItems[index];
-                return Card(
-                  margin: EdgeInsets.symmetric(horizontal: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  elevation: 5,
-                  child: Container(
-                    width: 300, // Set a specific width for the card
-                    height: 180, // Set the height of the card
-                    padding: const EdgeInsets.all(10),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Left Column: Image and Title
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
-                              child: Image.asset(
-                                item['image']!,
-                                width: 120,
-                                height: 100,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            // Title
-                            Text(
-                              item['title']!,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(width: 10), // Space between image and description
-                        // Right Column: Description, Status, and Button
-                        Expanded(
-                          child: Column(
+            // Found Items Section
+            const Text("Your found items",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 180, // Adjust the height of the sliding row
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: lostItems.length,
+                itemBuilder: (context, index) {
+                  var item = lostItems[index];
+                  return Card(
+                    margin: EdgeInsets.symmetric(horizontal: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    elevation: 5,
+                    child: Container(
+                      width: 300, // Set a specific width for the card
+                      height: 180, // Set the height of the card
+                      padding: const EdgeInsets.all(10),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Left Column: Image and Title
+                          Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Description Text (wrapped on new lines)
-                              Text(
-                                item['description']!,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey,
-                                ),
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              SizedBox(height: 10),
-                              // Status Text
-                              Text(
-                                'Status: ${item['status']}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: item['status'] == 'unresolved' ? Colors.red : Colors.green,
+                              ClipRRect(
+                                borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+                                child: Image.asset(
+                                  item['image']!,
+                                  width: 120,
+                                  height: 100,
+                                  fit: BoxFit.cover,
                                 ),
                               ),
-                              SizedBox(height: 10),
-                              // Get Details Button with green background and elevation
-                              ElevatedButton(
-                                onPressed: () {
-                                  // Handle the "Get Details" action here.
-                                  print('Get details of ${item['title']}');
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
-                                  elevation: 5,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                                ),
-                                child: Text(
-                                  'Get Details',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
+                              SizedBox(height: 8),
+                              // Title
+                              Text(
+                                item['title']!,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      ],
+                          SizedBox(width: 10), // Space between image and description
+                          // Right Column: Description, Status, and Button
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Description Text (wrapped on new lines)
+                                Text(
+                                  item['description']!,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey,
+                                  ),
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                SizedBox(height: 10),
+                                // Status Text
+                                Text(
+                                  'Status: ${item['status']}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: item['status'] == 'unresolved' ? Colors.red : Colors.green,
+                                  ),
+                                ),
+                                SizedBox(height: 10),
+                                // Get Details Button with green background and elevation
+                                ElevatedButton(
+                                  onPressed: () {
+                                    // Handle the "Get Details" action here.
+                                    print('Get details of ${item['title']}');
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    elevation: 5,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                                  ),
+                                  child: Text(
+                                    'Get Details',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
-          )
+                  );
+                },
+              ),
+            )
 
-        ],
+          ],
+        ),
       ),
     );
   }
