@@ -306,11 +306,29 @@ class ImageCard extends StatefulWidget {
 
 class _ImageCardState extends State<ImageCard> {
   late String status; // Store status state
-
+ String? userName;
   @override
   void initState() {
     super.initState();
     status = widget.doc['status'].toString() == "1" ? "Verified" : "Processing";
+    getUserName();
+  }
+  
+  void getUserName()async{
+
+    QuerySnapshot query = await FirebaseFirestore.instance
+        .collection("users")
+        .where("uid", isEqualTo: widget.doc['user_id'])
+        .get();
+
+    if (query.docs.isNotEmpty) {
+      setState(() {
+        userName = query.docs.first['verifiedName'];  // Access first document's username
+      });
+    } else {
+      print("No user found with the given UID");
+    }
+
   }
 
   void updateStatus(String newStatus) {
@@ -400,7 +418,7 @@ class _ImageCardState extends State<ImageCard> {
                   Icon(Icons.person, color: Colors.redAccent, size: 16),
                   SizedBox(width: 5),
                   Text(
-                    widget.doc['user_id'].toString(),
+                    userName!=null?userName!:"",
                     style: TextStyle(color: Colors.grey.shade700),
                     overflow: TextOverflow.ellipsis,
                   ),

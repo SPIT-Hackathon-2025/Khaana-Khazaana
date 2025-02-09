@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:pokemon_go/constants.dart';
+import 'package:pokemon_go/main.dart';
 import 'dart:convert';
 
 import '../models/user_model.dart';
@@ -110,7 +111,7 @@ class _ProfileUploadPageState extends State<ProfileUploadPage> {
       gender: _selectedGender!,
       identityProofUrl: identityUrl,
       identityType: _identityType ?? "Unknown",
-      verifiedName: _verifiedName ?? "Unknown",
+      verifiedName: _verifiedName ?? "Unknown", credits: 0,
     );
 
     // Store in Firestore
@@ -291,10 +292,10 @@ class _ProfileUploadPageState extends State<ProfileUploadPage> {
                             ),
                             SizedBox(height: 20),
                             // Identity Proof Upload Button
-                            (_verifiedName != "")
+                            (_verifiedName != null)
                                 ? ElevatedButton(
                                     onPressed: () {
-                                      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context){return Scaffold(body: Text("Home"),);}), (route)=>false);
+                                      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context){return ComplaintsScreen();}), (route)=>false);
 
                                     },
                                     child: const Text("Done",

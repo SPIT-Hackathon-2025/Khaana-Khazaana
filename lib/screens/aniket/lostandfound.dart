@@ -3,7 +3,7 @@ import 'claimhistory.dart';
 import 'foundhistory.dart';
 import 'searchItem.dart'; // Assuming this file exists
 
-class HomePage extends StatelessWidget {
+class LostFoundScreen extends StatelessWidget {
   final List<Map<String, String>> lostItems = [
     {
       "image": "assets/images/phone.jpg",
@@ -67,7 +67,7 @@ class HomePage extends StatelessWidget {
               Tab(icon: Icon(Icons.account_balance_wallet_outlined),
                   text: "Claims"),
               Tab(icon: Icon(Icons.account_balance_wallet), text: "Found"),
-              Tab(icon: Icon(Icons.person), text: "Profile"),
+
             ],
           ),
         ),

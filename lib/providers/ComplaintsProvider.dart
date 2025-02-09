@@ -25,8 +25,9 @@ class ComplaintsProvider with ChangeNotifier {
         'downvotes': newDownvotes,
         'status':newStatus
       });
+
       if(newUpvotes>20){
-        updateUserCredits(1);
+        updateUserCredits(1,freshSnap['user_id']);
       }
       upvotes[complaintId] = newUpvotes;
       downvotes[complaintId] = newDownvotes;

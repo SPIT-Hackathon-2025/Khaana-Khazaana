@@ -3,6 +3,7 @@ class UserModel {
   String name;
   String address;
   String dob;
+  int credits;
   String gender;
   String identityProofUrl;
   String identityType;
@@ -11,6 +12,7 @@ class UserModel {
   UserModel({
     required this.uid,
     required this.name,
+    required this.credits,
     required this.address,
     required this.dob,
     required this.gender,
@@ -22,6 +24,7 @@ class UserModel {
   Map<String, dynamic> toMap() {
     return {
       'uid': uid,
+      'credits': credits,
       'name': name,
       'address': address,
       'dob': dob,
@@ -41,7 +44,7 @@ class UserModel {
       gender: map['gender'],
       identityProofUrl: map['identityProofUrl'],
       identityType: map['identityType'],
-      verifiedName: map['verifiedName'],
+      verifiedName: map['verifiedName'], credits: map['credits'],
     );
   }
 }
