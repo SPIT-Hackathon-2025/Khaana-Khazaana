@@ -86,7 +86,7 @@ class _ProfileUploadPageState extends State<ProfileUploadPage> {
       _isLoading = true;
     });
 
-    String uid = 'FirebaseAuth.instance.currentUser!.uid';
+    String uid = FirebaseAuth.instance.currentUser!.uid;
 
     Position position = await determinePosition();
     setState(() {
@@ -135,7 +135,6 @@ class _ProfileUploadPageState extends State<ProfileUploadPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
       // Extend body behind app bar to show the full gradient background
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -189,8 +188,8 @@ class _ProfileUploadPageState extends State<ProfileUploadPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text("Name:",
-                                      style:
-                                          TextStyle(fontWeight: FontWeight.bold)),
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold)),
                                   SizedBox(height: 5),
                                   Container(
                                     padding: EdgeInsets.all(12),
@@ -212,8 +211,8 @@ class _ProfileUploadPageState extends State<ProfileUploadPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text("Address:",
-                                      style:
-                                          TextStyle(fontWeight: FontWeight.bold)),
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold)),
                                   SizedBox(height: 5),
                                   Container(
                                     padding: EdgeInsets.all(12),
@@ -236,8 +235,8 @@ class _ProfileUploadPageState extends State<ProfileUploadPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text("Date of Birth:",
-                                      style:
-                                          TextStyle(fontWeight: FontWeight.bold)),
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold)),
                                   SizedBox(height: 5),
                                   Container(
                                     padding: EdgeInsets.all(12),
@@ -292,43 +291,73 @@ class _ProfileUploadPageState extends State<ProfileUploadPage> {
                             ),
                             SizedBox(height: 20),
                             // Identity Proof Upload Button
-                            ElevatedButton.icon(
-                              onPressed: _pickIdentityProof,
-                              icon: Icon(Icons.upload_file, color: Colors.white),
-                              label: Text(
-                                _identityFile == null
-                                    ? "Upload ID Proof"
-                                    : "File Selected",
-                                style: TextStyle(fontSize: 16, color: Colors.black),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                padding: EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: 20),
-                            // Submit Profile Button
-                            _isLoading
-                                ? Center(
-                                    child: CircularProgressIndicator(
-                                      color: Colors.deepPurple,
-                                    ),
-                                  )
-                                : ElevatedButton(
-                                    onPressed: _saveProfile,
-                                    child: Text("Submit Profile",
+                            (_verifiedName != "")
+                                ? ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context){return Scaffold(body: Text("Home"),);}), (route)=>false);
+
+                                    },
+                                    child: const Text("Done",
                                         style: TextStyle(
                                             fontSize: 18, color: Colors.black)),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.green,
-                                      padding: EdgeInsets.symmetric(vertical: 14),
+                                      padding:
+                                          EdgeInsets.symmetric(vertical: 14),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                     ),
+                                  )
+                                : Column(
+                                    children: [
+                                      ElevatedButton.icon(
+                                        onPressed: _pickIdentityProof,
+                                        icon: Icon(Icons.upload_file,
+                                            color: Colors.white),
+                                        label: Text(
+                                          _identityFile == null
+                                              ? "Upload ID Proof"
+                                              : "File Selected",
+                                          style: TextStyle(
+                                              fontSize: 16,
+                                              color: Colors.black),
+                                        ),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.green,
+                                          padding: EdgeInsets.symmetric(
+                                              vertical: 14),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(height: 20),
+                                      // Submit Profile Button
+                                      _isLoading
+                                          ? Center(
+                                              child: CircularProgressIndicator(
+                                                color: Colors.deepPurple,
+                                              ),
+                                            )
+                                          : ElevatedButton(
+                                              onPressed: _saveProfile,
+                                              child: Text("Submit Profile",
+                                                  style: TextStyle(
+                                                      fontSize: 18,
+                                                      color: Colors.black)),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.green,
+                                                padding: EdgeInsets.symmetric(
+                                                    vertical: 14),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                              ),
+                                            ),
+                                    ],
                                   ),
                           ],
                         ),

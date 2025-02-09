@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
+import 'package:pokemon_go/main.dart';
 class ComplaintsProvider with ChangeNotifier {
   Map<String, int> upvotes = {};
   Map<String, int> downvotes = {};
@@ -25,7 +25,9 @@ class ComplaintsProvider with ChangeNotifier {
         'downvotes': newDownvotes,
         'status':newStatus
       });
-
+      if(newUpvotes>20){
+        updateUserCredits(1);
+      }
       upvotes[complaintId] = newUpvotes;
       downvotes[complaintId] = newDownvotes;
     });

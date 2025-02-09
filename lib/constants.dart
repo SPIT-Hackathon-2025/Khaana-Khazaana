@@ -2,7 +2,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 const url =
-    "https://e3de-2409-40c0-103d-8150-b0e8-2c11-689e-55fa.ngrok-free.app";
+    "https://9ba3-2409-40c0-16-79e3-b0e8-2c11-689e-55fa.ngrok-free.app";
 Future<Position> determinePosition() async {
   bool serviceEnabled;
   LocationPermission permission;

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -11,13 +12,18 @@ import 'package:image_picker/image_picker.dart';
 import 'package:pokemon_go/screens/DiscussionScreen.dart';
 import 'package:pokemon_go/screens/MapScreen.dart';
 import 'package:pokemon_go/screens/ProfileInfoScreen.dart';
+import 'package:pokemon_go/screens/aniket/lostandfound.dart';
 import 'dart:io';
-import 'package:pokemon_go/screens/ComplaintTile.dart';
 import 'package:provider/provider.dart';
+
 import 'package:workmanager/workmanager.dart';
 
 import 'constants.dart';
 import 'providers/ComplaintsProvider.dart';
+import 'screens/SignupScreen.dart';
+import 'screens/aniket/ClaimProvider.dart';
+import 'screens/aniket/FoundProvider.dart';
+import 'screens/trip.dart';
 
 void main() async{
 
@@ -90,6 +96,7 @@ class Complaint {
   int downvotes;
   String status;
   DateTime createdAt;
+  String user_id;
 
   Complaint({
     required this.title,
@@ -102,6 +109,7 @@ class Complaint {
     this.downvotes = 0,
     this.status = '0',
     required this.createdAt,
+    required this.user_id,
   });
 
   Map<String, dynamic> toMap() {
@@ -115,6 +123,7 @@ class Complaint {
       'upvotes': upvotes,
       'downvotes': downvotes,
       'status': status,
+      'user_id': user_id,
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -126,6 +135,8 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ComplaintsProvider()),
+        ChangeNotifierProvider(create: (_) => ClaimProvider()  ),
+        ChangeNotifierProvider(create: (_) => FoundProvider()  )
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -143,7 +154,7 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
-        home: ComplaintsScreen(),
+        home: HomePage(),
       ),
     );
   }
@@ -314,98 +325,120 @@ class _ComplaintsListState extends State<ComplaintsList> with SingleTickerProvid
           return const Center(child: Text("Nothing to show!"));
         }
 
-        // **Separate Local & Global Complaints**
         var localComplaints = allDocs.where((doc) {
           double latitude = doc['latitude'];
           double longitude = doc['longitude'];
-          return isWithinRadius(latitude, longitude, widget.currentLocation!, getRadius());
+          return isWithinRadius(
+              latitude, longitude, widget.currentLocation!, getRadius());
         }).toList();
 
-        var globalComplaints = allDocs.where((doc) => !localComplaints.contains(doc)).toList();
+        var globalComplaints = allDocs.where((doc) =>
+        !localComplaints.contains(doc)&&doc['status'] != "0").toList();
 
-        return Column(
-          children: [
-            // **Highlight the Latest Complaint in a Large Tile**
-            LargeComplaintTile(doc: allDocs.first),
+        return SingleChildScrollView(
+          child: Column(
+            children: [
+              // **Scrollable Large Complaint Tile**
+             Container(
 
-            SizedBox(height: 10),
-
-            // **TabBar with Oval Border**
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.transparent, // Change color based on tab
-                borderRadius: BorderRadius.circular(20),
+                child: LargeComplaintTile(doc: localComplaints.first),
               ),
-              child: TabBar(
-                controller: _tabController,
-                labelColor: Colors.green,
-                unselectedLabelColor: Colors.white,
-                indicatorColor: Colors.transparent,
-                tabs: [
-                  Tab(
-                    child: Container(
 
-                      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 20),
-                      decoration: BoxDecoration(
-                        color: _tabController.index == 0 ? Colors.green[50]:Colors.transparent ,
-                        border: Border.all(color: Colors.green, width: 3),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        "Local",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              SizedBox(height: 10),
+
+              // **TabBar with Oval Border**
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  labelColor: Colors.green,
+                  unselectedLabelColor: Colors.white,
+                  indicatorColor: Colors.transparent,
+                  tabs: [
+                    Tab(
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 20),
+                        decoration: BoxDecoration(
+                          color: _tabController.index == 0
+                              ? Colors.green[50]
+                              : Colors.transparent,
+                          border: Border.all(color: Colors.green, width: 3),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          "Local",
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
                       ),
                     ),
-                  ),
-                  Tab(
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 20),
-                      decoration: BoxDecoration(
-                        color: _tabController.index == 0 ? Colors.transparent:Colors.green[50],
-                        border: Border.all(color: Colors.green, width: 2),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        "Global",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    Tab(
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 20),
+                        decoration: BoxDecoration(
+                          color: _tabController.index == 1
+                              ? Colors.green[50]
+                              : Colors.transparent,
+                          border: Border.all(color: Colors.green, width: 2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          "Global",
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
 
-            // **TabBarView for Switching Between Local & Global**
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  // **Local Complaints Section**
-                  localComplaints.isNotEmpty
-                      ? ListView.builder(
-                    padding: EdgeInsets.all(8),
-                    itemCount: localComplaints.length,
-                    itemBuilder: (context, index) => ComplaintCard(doc: localComplaints[index]),
-                  )
-                      : Center(child: Text("No Local Complaints")),
+              // **TabBarView for Switching Between Local & Global**
+              SizedBox(height: 10),
+              Container(
+                height: 500, // Adjust height as needed
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    // **Local Complaints Section**
+                    localComplaints.isNotEmpty
+                        ? ListView.builder(
 
-                  // **Global Complaints Section**
-                  globalComplaints.isNotEmpty
-                      ? ListView.builder(
-                    padding: EdgeInsets.all(8),
-                    itemCount: globalComplaints.length,
-                    itemBuilder: (context, index) => ComplaintCard(doc: globalComplaints[index]),
-                  )
-                      : Center(child: Text("No Global Complaints")),
-                ],
+                      physics: BouncingScrollPhysics(),
+                      // Prevent inner scrolling issues
+                      padding: EdgeInsets.all(8),
+                      itemCount: localComplaints.length,
+                      itemBuilder: (context, index) =>
+                          ComplaintCard(doc: localComplaints[index]),
+                    )
+                        : Center(child: Text("No Local Complaints")),
+
+                    // **Global Complaints Section**
+                    globalComplaints.isNotEmpty
+                        ? ListView.builder(
+
+                      physics: BouncingScrollPhysics(),
+                      padding: EdgeInsets.all(8),
+                      itemCount: globalComplaints.length,
+                      itemBuilder: (context, index) =>
+                          ComplaintCard(doc: globalComplaints[index]),
+                    )
+                        : Center(child: Text("No Global Complaints")),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
   }
-}
+  }
 
 
 class LargeComplaintTile extends StatelessWidget {
@@ -806,6 +839,7 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
   File? _image;
   double _latitude=0;
   double _longitude=0;
+
   final _formKey = GlobalKey<FormState>();
 
   Future<void> _getLocation() async {
@@ -878,12 +912,17 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
         createdAt: DateTime.now(),
         latitude: _latitude!,
         longitude: _longitude!,
+        user_id: FirebaseAuth.instance.currentUser!.uid
+
       );
 
       // Add complaint to Firestore
       DocumentReference docRef = await FirebaseFirestore.instance
           .collection('complaints')
           .add(complaint.toMap());
+      DocumentReference userDocRef = FirebaseFirestore.instance.collection('user').doc("FirebaseAuth.instance.currentUser!.uid");
+
+
 
       // Send title to API
     // Replace with your API URL
@@ -897,7 +936,10 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
         if (response.statusCode == 200) {
           Map<String, dynamic> responseData = jsonDecode(response.body);
           String newStatus = responseData["status"]; // Extract status
-print("Status is"+newStatus);
+          print("Status is"+newStatus);
+          if(newStatus=="1"){
+            updateUserCredits(10);
+          }
           // Update Firestore with the received status
           await docRef.update({"status": newStatus});
         } else {
@@ -910,6 +952,9 @@ print("Status is"+newStatus);
       Navigator.pop(context);
     }
   }
+
+
+
 
   Future<String> _uploadImage() async {
     Reference storageRef = FirebaseStorage.instance
@@ -999,12 +1044,10 @@ print("Status is"+newStatus);
                                 ),
                               ),
                               items: [
-                                'Fire',
-                                'Power Cut',
-                                'Flooding',
-                                'Pothole',
-                                'Road Damage',
-                                'Water Issues'
+                                'Disaster',
+                                'Accident',
+                                'Health Emergency',
+                                'Crime'
                               ]
                                   .map((cat) =>
                                   DropdownMenuItem(value: cat, child: Text(cat)))
@@ -1091,5 +1134,32 @@ print("Status is"+newStatus);
           ),
         ),
         );
+  }
+}
+
+Future<void> updateUserCredits(int amount) async {
+  String uid = FirebaseAuth.instance.currentUser!.uid;
+
+  DocumentReference userDocRef =
+  FirebaseFirestore.instance.collection('user').doc(uid);
+
+  try {
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      DocumentSnapshot snapshot = await transaction.get(userDocRef);
+
+      if (!snapshot.exists) {
+        throw Exception("User document does not exist!");
+      }
+
+      int currentCredits = snapshot["credits"] ?? 0;
+      print(currentCredits);
+      int newCredits = (currentCredits + 10);
+
+      transaction.update(userDocRef, {"credits": newCredits});
+    });
+
+    print("Credits increased by 10 successfully!");
+  } catch (e) {
+    print("Error increasing credits: $e");
   }
 }
