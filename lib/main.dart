@@ -129,7 +129,7 @@ class _MyAppState extends State<MyApp> {
             ),
           ),
         ),
-        home: SignUpScreen(),
+        home: HomeScreen(),
         // home:
         // StreamBuilder(
         //   stream: FirebaseAuth.instance.authStateChanges(),

@@ -9,6 +9,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:pokemon_go/screens/MapScreen.dart';
 import 'package:http/http.dart' as http;
 import '../main.dart';
+import '../trip_planner.dart';
 import 'aniket/chatBot.dart';
 import 'aniket/foundhistory.dart';
 import 'aniket/lostandfound.dart';
@@ -27,6 +28,8 @@ class _HomeScreenState extends State<HomeScreen> {
     TripPage(),
     ComplaintsScreen(),
     LostFoundScreen(),
+
+    TripPlannerPage(),
     ProfileScreen(),
   ];
 
@@ -398,8 +401,8 @@ class _HomeScreenState extends State<HomeScreen> {
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.directions_car),
-            label: 'Trip',
+            icon: Icon(Icons.home),
+            label: 'Home',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.report),
@@ -410,9 +413,13 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Lost/Found',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.travel_explore),
+            label: 'Planner',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: 'Profile',
-          ),
+          )
         ],
       ),
     );

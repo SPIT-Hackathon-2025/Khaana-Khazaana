@@ -383,86 +383,91 @@ class _SubmitLostItemPageState extends State<SubmitLostItemPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Add Lost Item")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(labelText: "Item Title"),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(labelText: "Description"),
-            ),
-            const SizedBox(height: 10),
-            const Text("Select Image:", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            Wrap(
-              spacing: 10,
-              children: availableImages.map((imagePath) {
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedImage = imagePath;
-                    });
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      border: _selectedImage == imagePath ? Border.all(color: Colors.blue, width: 3) : null,
-                    ),
-                    child: Image.asset(
-                      imagePath,
-                      width: 80,
-                      height: 80,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _latitudeController,
-              decoration: const InputDecoration(labelText: "Latitude"),
-            ),
-            TextField(
-              controller: _longitudeController,
-              decoration: const InputDecoration(labelText: "Longitude"),
-            ),
-            const SizedBox(height: 20),
-
-            // Generate Questions Button
-            Center(
-              child: ElevatedButton(
-                onPressed: _isLoadingQuestions ? null : _generateQuestionnaire,
-                child: _isLoadingQuestions
-                    ? CircularProgressIndicator(color: Colors.white)
-                    : const Text("Generate Questionnaire"),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: _titleController,
+                decoration: const InputDecoration(labelText: "Item Title"),
               ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(labelText: "Description"),
+              ),
+              const SizedBox(height: 10),
 
-            // Display Generated & Custom Questions
-            if (questions.isNotEmpty)
-              Expanded(
-                child: Column(
+              // Image Selection
+              const Text("Select Image:", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 5),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: availableImages.map((imagePath) {
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedImage = imagePath;
+                        });
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 5),
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          border: _selectedImage == imagePath ? Border.all(color: Colors.blue, width: 3) : null,
+                        ),
+                        child: Image.asset(
+                          imagePath,
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              TextField(
+                controller: _latitudeController,
+                decoration: const InputDecoration(labelText: "Latitude"),
+              ),
+              TextField(
+                controller: _longitudeController,
+                decoration: const InputDecoration(labelText: "Longitude"),
+              ),
+              const SizedBox(height: 20),
+
+              // Generate Questions Button
+              Center(
+                child: ElevatedButton(
+                  onPressed: _isLoadingQuestions ? null : _generateQuestionnaire,
+                  child: _isLoadingQuestions
+                      ? CircularProgressIndicator(color: Colors.white)
+                      : const Text("Generate Questionnaire"),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Display Questions
+              if (questions.isNotEmpty)
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text("Verification Questions", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: questions.length,
-                        itemBuilder: (context, index) {
-                          return ListTile(
-                            title: Text(questions[index]),
-                          );
-                        },
+                    const SizedBox(height: 10),
+                    ...questions.map((question) => Card(
+                      margin: EdgeInsets.symmetric(vertical: 5),
+                      elevation: 2,
+                      child: ListTile(
+                        title: Text(question),
                       ),
-                    ),
+                    )),
+                    const SizedBox(height: 10),
                     TextField(
                       controller: _customQuestionController,
                       decoration: InputDecoration(
@@ -473,19 +478,20 @@ class _SubmitLostItemPageState extends State<SubmitLostItemPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
                   ],
                 ),
-              ),
 
-            // Add Item Button
-            Center(
-              child: ElevatedButton(
-                onPressed: _submitItem,
-                child: const Text("Add Item"),
+              const SizedBox(height: 20),
+
+              // Add Item Button
+              Center(
+                child: ElevatedButton(
+                  onPressed: _submitItem,
+                  child: const Text("Add Item"),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
